@@ -13,6 +13,14 @@ struct spinlock_mutex{
         flag.store(false, std::memory_order_release);
     }
 
+    void pause_cpu(){
+        #if defined(__x86_64) || defined(_M_X64) || defined(__i386__) || defined(_M_IX86)
+            _mm_pause();
+        #elif defined(__arch64__) || defined((__arm__))
+            __asm__ volatile("yield");
+        #endif
+    }
+
     // Exponential backoff strategy
     void lock() noexcept{
         constexpr std::array iterations{ 5, 10, 3000 };
@@ -26,7 +34,8 @@ struct spinlock_mutex{
             if(try_lock())
                 return;
 
-            _mm_pause();                
+            
+            pause_cpu();                
         }
 
         while(true){
@@ -34,16 +43,16 @@ struct spinlock_mutex{
                 if(try_lock())
                     return;
 
-                _mm_pause();                    
-                _mm_pause();
-                _mm_pause();
-                _mm_pause();
-                _mm_pause();
-                _mm_pause();
-                _mm_pause();
-                _mm_pause();
-                _mm_pause();
-                _mm_pause();
+                pause_cpu();                    
+                pause_cpu();
+                pause_cpu();
+                pause_cpu();
+                pause_cpu();
+                pause_cpu();
+                pause_cpu();
+                pause_cpu();
+                pause_cpu();
+                pause_cpu();
             }
         }
     }
